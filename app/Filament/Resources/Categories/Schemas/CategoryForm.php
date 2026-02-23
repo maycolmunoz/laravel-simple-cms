@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources\Categories\Schemas;
 
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -15,7 +15,7 @@ class CategoryForm
     {
         return $schema
             ->components([
-                Section::make()
+                Section::make('Category Information')
                     ->schema([
                         TextInput::make('title')
                             ->required()
@@ -33,6 +33,6 @@ class CategoryForm
                             ->default(true),
                     ])
                     ->columns(2),
-            ]);
+            ])->columns(1);
     }
 }
