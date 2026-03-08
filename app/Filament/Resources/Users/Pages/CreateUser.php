@@ -16,7 +16,7 @@ class CreateUser extends CreateRecord
 
         $record = static::getModel()::create($data);
 
-        if ($role) {
+        if ($role !== null) {
             $record->role = $role;
             $record->save();
         }

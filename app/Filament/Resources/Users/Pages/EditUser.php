@@ -25,7 +25,7 @@ class EditUser extends EditRecord
 
         $record->fill($data);
 
-        if ($role) {
+        if ($role !== null) {
             $record->role = $role;
         }
 

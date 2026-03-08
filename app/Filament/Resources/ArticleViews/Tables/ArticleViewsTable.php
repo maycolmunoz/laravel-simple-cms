@@ -11,6 +11,7 @@ class ArticleViewsTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn ($query) => $query->with('article'))
             ->columns([
                 TextColumn::make('article.title')
                     ->label('Article')

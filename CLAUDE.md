@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A simple content management system built with Laravel 12, Filament PHP 5.2 (admin panel), DaisyUI 5 (frontend), and Lucide Icons. Manages Pages, Articles, Categories, and Media uploads with Spatie Media Library. Frontend is fully internationalized. Content is sanitized with stevebauman/purify to prevent XSS.
+A simple content management system built with Laravel 12, Filament PHP 5.3 (admin panel), DaisyUI 5 (frontend), and Lucide Icons. Manages Pages, Articles, Categories, and Media uploads with Spatie Media Library. Frontend is fully internationalized. Content is sanitized with stevebauman/purify to prevent XSS.
 
 ## Common Commands
 
@@ -35,7 +35,7 @@ php artisan optimize:clear  # Clear all caches
 
 ## Architecture
 
-### Admin Panel (Filament PHP 5.2)
+### Admin Panel (Filament v5)
 - **Location**: `app/Filament/Resources/`
 - **Panel Provider**: `app/Providers/Filament/AdminPanelProvider.php`
 - **Access**: `/admin` (admin: admin@admin.com / password, editor: editor@editor.com / password)
