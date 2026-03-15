@@ -195,10 +195,12 @@ $user->isEditor(); // true if editor
 - **View Deduplication**: Article views are deduplicated per IP per 30 minutes via cache
 - **Route Constraints**: All slug routes have `[a-z0-9\-]+` regex constraints
 - **File Upload Validation**: Featured images require explicit MIME type allowlist
-- **Mass Assignment**: `role` field is excluded from `$fillable` on User model to prevent privilege escalation
-- **Ownership Authorization**: Articles, Pages and Media now track `user_id` ownership
-- **Policy Enforcement**: Laravel Policies ensure only admins or resource owners can update/delete records
-- **Query Scoping**: Non-admin users can only view their own resources in Filament admin panel
+- **Mass Assignment**: `role` field is excluded from `$fillable` on User model. `user_id` is excluded from `$fillable` on Article, Page, and MediaItem — it is auto-assigned in `booted()` hooks, never user-editable
+- **Ownership Authorization**: Articles, Pages, Media, and MediaItems track `user_id` ownership (auto-assigned via model `booted()` hooks)
+- **Policy Enforcement**: A single `OwnerablePolicy` handles authorization for Article, Page, Media, and MediaItem — only admins or resource owners can update/delete records. All models are mapped to it via `Gate::policy()` in `AppServiceProvider`. To customize authorization for a specific model, create a dedicated policy and swap the mapping
+- **Query Scoping**: Non-admin users can only view their own resources in Filament admin panel via `getEloquentQuery()` overrides
+- **Bulk Delete Authorization**: `DeleteBulkAction` uses `authorizeIndividualRecords('delete')` to check per-record policies
+- **Cascade Protection**: `user_id` foreign keys use `nullOnDelete()` to preserve content when a user is deleted (content becomes unowned rather than deleted)
 
 ### Database
 - SQLite by default (`database/database.sqlite`)
@@ -207,13 +209,16 @@ $user->isEditor(); // true if editor
 ## Key Patterns
 
 ### Slug Generation
-Models auto-generate slugs from title on creation:
+Article and Page models auto-generate slugs from title on creation via `booted()` hooks, with deduplication (appends `-2`, `-3`, etc.). The `HasUniqueSlug` trait (`app/Models/Concerns/`) catches `UniqueConstraintViolationException` on insert and retries with a random suffix to handle race conditions.
 ```php
+// Auto-generation in booted()
 static::creating(function ($model) {
     if (empty($model->slug)) {
         $model->slug = Str::slug($model->title);
     }
 });
+
+// Race condition safety via HasUniqueSlug trait on save()
 ```
 
 ### Published Scopes
@@ -389,7 +394,7 @@ SpatieMediaLibraryImageEntry::make('avatar')
 ```
 
 ### Action Modal with File Upload
-For uploading media in action modals, use regular FileUpload then attach via Spatie:
+For uploading media in action modals, use `storeFiles(false)` to get temporary upload objects, then attach via Spatie:
 ```php
 use Filament\Forms\Components\FileUpload;
 
@@ -398,12 +403,14 @@ Action::make('upload')
         FileUpload::make('images')
             ->multiple()
             ->image()
-            ->imageEditor(),
+            ->imageEditor()
+            ->storeFiles(false),
     ])
     ->action(function (array $data): void {
         $mediaItem = MediaItem::create(['name' => 'Upload']);
-        foreach ($data['images'] as $image) {
-            $mediaItem->addMedia(storage_path('app/private/livewire-tmp/' . $image))
+        foreach ($data['images'] as $file) {
+            $mediaItem->addMedia($file->getRealPath())
+                ->usingFileName($file->getClientOriginalName())
                 ->toMediaCollection('images');
         }
     })

@@ -8,6 +8,9 @@ use Illuminate\Support\Str;
 
 class Category extends Model
 {
+    /**
+     * @var string[]
+     */
     protected $fillable = [
         'title',
         'slug',
@@ -15,10 +18,16 @@ class Category extends Model
         'is_active',
     ];
 
+    /**
+     * @var string[]
+     */
     protected $casts = [
         'is_active' => 'boolean',
     ];
 
+    /**
+     * @return void
+     */
     protected static function booted(): void
     {
         static::creating(function (Category $category) {
@@ -34,6 +43,9 @@ class Category extends Model
         });
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
     public function articles(): HasMany
     {
         return $this->hasMany(Article::class);

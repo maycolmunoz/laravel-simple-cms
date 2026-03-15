@@ -8,6 +8,9 @@ use App\Models\Category;
 
 class ArticleController extends Controller
 {
+    /**
+     * @return \Illuminate\Contracts\View\Factory|\Illuminate\Contracts\View\View|\Illuminate\View\View
+     */
     public function index()
     {
         $articles = Article::published()->with('category')->latest('published_at')->paginate(12);
@@ -15,15 +18,18 @@ class ArticleController extends Controller
             ->whereHas('articles', fn ($q) => $q->published())
             ->withCount(['articles' => fn ($q) => $q->published()])
             ->get();
-
         return view('frontend.articles.index', compact('articles', 'categories'));
     }
 
+    /**
+     * @param string $slug
+     *
+     * @return \Illuminate\Contracts\View\Factory|\Illuminate\Contracts\View\View|\Illuminate\View\View
+     */
     public function show(string $slug)
     {
         $article = Article::published()->with('category')->withCount('views')->where('slug', $slug)->firstOrFail();
         $others = Article::published()->where('id', '!=', $article->id)->latest('published_at')->take(5)->get();
-
         // Record the view with details (deduplicated per IP per 30 minutes)
         $ip = filter_var(request()->ip(), FILTER_VALIDATE_IP) ? request()->ip() : null;
         $cacheKey = 'article_view:'.$article->id.':'.md5($ip ?? 'unknown');
@@ -34,7 +40,6 @@ class ArticleController extends Controller
                 request()->header('referer')
             );
         }
-
         return view('frontend.articles.show', compact('article', 'others'));
     }
 }

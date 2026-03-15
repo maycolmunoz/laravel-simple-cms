@@ -9,12 +9,14 @@ use App\Models\Page;
 
 class HomeController extends Controller
 {
+    /**
+     * @return \Illuminate\Contracts\View\Factory|\Illuminate\Contracts\View\View|\Illuminate\View\View
+     */
     public function index()
     {
         $articles = Article::published()->with('category')->latest('published_at')->take(6)->get();
         $pages = Page::published()->roots()->orderBy('sort_order')->get();
         $categories = Category::where('is_active', true)->whereHas('articles', fn ($q) => $q->published())->withCount(['articles' => fn ($q) => $q->published()])->get();
-
         return view('frontend.home', compact('articles', 'pages', 'categories'));
     }
 }

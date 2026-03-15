@@ -182,8 +182,10 @@ Static pages for content like About, Contact, Privacy Policy, etc. Each page has
 
 The CMS supports two user roles:
 
-- **Admin** - Full access to all features including user management
-- **Editor** - Can manage articles, categories, and pages (no user management)
+- **Admin** - Full access to all features including user management. Can see and manage all content regardless of ownership
+- **Editor** - Can manage articles, categories, and pages (no user management). Can only see and edit their own content
+
+Content ownership is tracked via `user_id` on articles, pages, and media. A single `OwnerablePolicy` enforces that editors can only update/delete their own resources, while admins have full access. Deleting a user preserves their content (ownership is set to null).
 
 ### Analytics Dashboard
 

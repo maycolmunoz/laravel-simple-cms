@@ -7,21 +7,29 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ArticleView extends Model
 {
-    protected $fillable = [
-        'article_id',
-        'ip_address',
-        'user_agent',
-        'referer',
-        'viewed_at',
-    ];
+    /**
+     * @var bool
+     */
+    public $timestamps = false;
 
+    /**
+     * @var string[]
+     */
+    protected $guarded = [];
+
+    /**
+     * @return string[]
+     */
     protected function casts(): array
     {
         return [
-            'viewed_at' => 'datetime',
+            'viewed_at' => 'datetime'
         ];
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
     public function article(): BelongsTo
     {
         return $this->belongsTo(Article::class);

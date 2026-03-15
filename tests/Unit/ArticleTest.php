@@ -62,6 +62,22 @@ describe('model', function () {
 
         expect($second->slug)->toBe('duplicate-2');
     });
+
+    it('recovers from slug collision on save', function () {
+        // Simulate race condition: create article with slug that will collide
+        Article::create(['title' => 'Race Test', 'slug' => 'race-test', 'content' => 'C', 'is_published' => false]);
+
+        // Manually force a collision by setting slug directly (bypassing the while loop)
+        $article = new Article(['title' => 'Race Test 2', 'content' => 'C', 'is_published' => false]);
+        $article->slug = 'race-test'; // This will collide with the existing one
+
+        // HasUniqueSlug trait should catch the exception and append a random suffix
+        $article->save();
+
+        expect($article->slug)->toStartWith('race-test-');
+        expect($article->slug)->not->toBe('race-test');
+        expect($article->exists)->toBeTrue();
+    });
 });
 
 describe('views', function () {

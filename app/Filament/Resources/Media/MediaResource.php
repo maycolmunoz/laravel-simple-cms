@@ -9,7 +9,7 @@ use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use App\Models\Media;
 
 class MediaResource extends Resource
 {

@@ -55,19 +55,29 @@ class MediaTable
             ->filters([
                 SelectFilter::make('collection_name')
                     ->label('Collection')
-                    ->options(fn () => \Spatie\MediaLibrary\MediaCollections\Models\Media::query()
-                        ->distinct()
-                        ->pluck('collection_name', 'collection_name')
-                        ->toArray()
-                    ),
+                    ->options(function () {
+                        $query = \App\Models\Media::query();
+                        if (auth()->check() && ! auth()->user()->isAdmin()) {
+                            $query->where('user_id', auth()->id());
+                        }
+
+                        return $query->distinct()
+                            ->pluck('collection_name', 'collection_name')
+                            ->toArray();
+                    }),
                 SelectFilter::make('model_type')
                     ->label('Model')
-                    ->options(fn () => \Spatie\MediaLibrary\MediaCollections\Models\Media::query()
-                        ->distinct()
-                        ->pluck('model_type')
-                        ->mapWithKeys(fn ($type) => [$type => class_basename($type)])
-                        ->toArray()
-                    ),
+                    ->options(function () {
+                        $query = \App\Models\Media::query();
+                        if (auth()->check() && ! auth()->user()->isAdmin()) {
+                            $query->where('user_id', auth()->id());
+                        }
+
+                        return $query->distinct()
+                            ->pluck('model_type')
+                            ->mapWithKeys(fn ($type) => [$type => class_basename($type)])
+                            ->toArray();
+                    }),
             ])
             ->recordActions([
                 Action::make('view')
@@ -107,7 +117,8 @@ class MediaTable
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->authorizeIndividualRecords('delete'),
                 ]),
             ])
             ->defaultSort('created_at', 'desc');

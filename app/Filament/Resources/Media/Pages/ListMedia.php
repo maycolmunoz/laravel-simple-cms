@@ -33,22 +33,14 @@ class ListMedia extends ListRecords
                         ->imageEditor()
                         ->maxSize(5120)
                         ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
+                        ->storeFiles(false)
                         ->required()
                         ->helperText('Max 5MB per file. Supported: JPG, PNG, GIF, WebP'),
                 ])
                 ->action(function (array $data): void {
-                    $expectedDir = realpath(storage_path('app/private/livewire-tmp'));
+                    $files = collect($data['images'])->filter();
 
-                    $validPaths = [];
-                    foreach ($data['images'] as $image) {
-                        $path = realpath(storage_path('app/private/livewire-tmp/'.basename($image)));
-
-                        if ($path !== false && str_starts_with($path, $expectedDir.DIRECTORY_SEPARATOR)) {
-                            $validPaths[] = $path;
-                        }
-                    }
-
-                    if (empty($validPaths)) {
+                    if ($files->isEmpty()) {
                         Notification::make()
                             ->title('No valid images to upload')
                             ->danger()
@@ -61,13 +53,20 @@ class ListMedia extends ListRecords
                         'name' => $data['name'] ?? 'Uploaded '.now()->format('Y-m-d H:i'),
                     ]);
 
-                    foreach ($validPaths as $path) {
-                        $mediaItem->addMedia($path)
+                    $uploaded = 0;
+                    foreach ($files as $file) {
+                        $realPath = $file->getRealPath();
+                        if (! $realPath) {
+                            continue;
+                        }
+                        $mediaItem->addMedia($realPath)
+                            ->usingFileName($file->getClientOriginalName())
                             ->toMediaCollection('images');
+                        $uploaded++;
                     }
 
                     Notification::make()
-                        ->title("Uploaded ".count($validPaths)." image(s) successfully")
+                        ->title("Uploaded ".$uploaded." image(s) successfully")
                         ->success()
                         ->send();
                 }),

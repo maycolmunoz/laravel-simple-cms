@@ -10,6 +10,7 @@ use App\Filament\Resources\Categories\Pages\ListCategories;
 use App\Filament\Resources\Pages\Pages\CreatePage as CreatePagePage;
 use App\Filament\Resources\Pages\Pages\EditPage as EditPagePage;
 use App\Filament\Resources\Pages\Pages\ListPages;
+use App\Filament\Resources\Media\Pages\ListMedia;
 use App\Filament\Resources\Users\Pages\CreateUser;
 use App\Filament\Resources\Users\Pages\EditUser;
 use App\Filament\Resources\Users\Pages\ListUsers;
@@ -379,5 +380,320 @@ describe('Editor role', function () {
             ->assertHasNoFormErrors();
 
         $this->assertDatabaseHas('pages', ['title' => 'Editor Page']);
+    });
+});
+
+// ── Ownership Authorization ─────────────────────────────────────
+
+describe('Ownership authorization', function () {
+    it('prevents editor from updating or deleting admin article', function () {
+        $admin = createUser(UserRole::Admin);
+        $editor = createUser(UserRole::Editor);
+        $article = Article::forceCreate([
+            'title' => 'Admin Article', 'slug' => 'admin-article',
+            'content' => '<p>Content</p>', 'is_published' => true, 'user_id' => $admin->id,
+        ]);
+
+        $this->actingAs($editor);
+        expect($editor->can('update', $article))->toBeFalse();
+        expect($editor->can('delete', $article))->toBeFalse();
+    });
+
+    it('allows editor to update and delete own article', function () {
+        $editor = createUser(UserRole::Editor);
+        $article = Article::forceCreate([
+            'title' => 'Editor Article', 'slug' => 'editor-own-article',
+            'content' => '<p>Content</p>', 'is_published' => true, 'user_id' => $editor->id,
+        ]);
+
+        $this->actingAs($editor);
+        expect($editor->can('update', $article))->toBeTrue();
+        expect($editor->can('delete', $article))->toBeTrue();
+    });
+
+    it('allows admin to update and delete any article', function () {
+        $admin = createUser(UserRole::Admin);
+        $editor = createUser(UserRole::Editor);
+        $article = Article::forceCreate([
+            'title' => 'Editor Article', 'slug' => 'editor-article-2',
+            'content' => '<p>Content</p>', 'is_published' => true, 'user_id' => $editor->id,
+        ]);
+
+        $this->actingAs($admin);
+        expect($admin->can('update', $article))->toBeTrue();
+        expect($admin->can('delete', $article))->toBeTrue();
+    });
+
+    it('prevents editor from updating or deleting admin page', function () {
+        $admin = createUser(UserRole::Admin);
+        $editor = createUser(UserRole::Editor);
+        $page = Page::forceCreate([
+            'title' => 'Admin Page', 'slug' => 'admin-page',
+            'content' => '<p>Content</p>', 'is_published' => true, 'user_id' => $admin->id,
+        ]);
+
+        $this->actingAs($editor);
+        expect($editor->can('update', $page))->toBeFalse();
+        expect($editor->can('delete', $page))->toBeFalse();
+    });
+
+    it('allows editor to update and delete own page', function () {
+        $editor = createUser(UserRole::Editor);
+        $page = Page::forceCreate([
+            'title' => 'Editor Page', 'slug' => 'editor-own-page',
+            'content' => '<p>Content</p>', 'is_published' => true, 'user_id' => $editor->id,
+        ]);
+
+        $this->actingAs($editor);
+        expect($editor->can('update', $page))->toBeTrue();
+        expect($editor->can('delete', $page))->toBeTrue();
+    });
+
+    it('prevents editor from updating or deleting admin media', function () {
+        $admin = createUser(UserRole::Admin);
+        $editor = createUser(UserRole::Editor);
+        $media = \App\Models\Media::forceCreate([
+            'model_type' => 'App\Models\MediaItem', 'model_id' => 1,
+            'collection_name' => 'default', 'name' => 'test', 'file_name' => 'test.jpg',
+            'mime_type' => 'image/jpeg', 'disk' => 'public', 'size' => 1024,
+            'manipulations' => '[]', 'custom_properties' => '[]',
+            'generated_conversions' => '[]', 'responsive_images' => '[]',
+            'uuid' => \Illuminate\Support\Str::uuid(), 'user_id' => $admin->id,
+        ]);
+
+        $this->actingAs($editor);
+        expect($editor->can('update', $media))->toBeFalse();
+        expect($editor->can('delete', $media))->toBeFalse();
+    });
+
+    it('editor cannot see admin articles in list', function () {
+        $admin = createUser(UserRole::Admin);
+        $editor = createUser(UserRole::Editor);
+        $adminArticle = Article::forceCreate([
+            'title' => 'Admin Only', 'slug' => 'admin-only',
+            'content' => '<p>C</p>', 'is_published' => true, 'user_id' => $admin->id,
+        ]);
+
+        $this->actingAs($editor);
+        Livewire::test(ListArticles::class)
+            ->assertCanNotSeeTableRecords([$adminArticle]);
+    });
+
+    it('editor cannot see admin pages in list', function () {
+        $admin = createUser(UserRole::Admin);
+        $editor = createUser(UserRole::Editor);
+        $adminPage = Page::forceCreate([
+            'title' => 'Admin Page', 'slug' => 'admin-page-hidden',
+            'is_published' => true, 'user_id' => $admin->id,
+        ]);
+
+        $this->actingAs($editor);
+        Livewire::test(ListPages::class)
+            ->assertCanNotSeeTableRecords([$adminPage]);
+    });
+
+    it('editor cannot see admin media in list', function () {
+        $admin = createUser(UserRole::Admin);
+        $editor = createUser(UserRole::Editor);
+        $adminMedia = \App\Models\Media::forceCreate([
+            'model_type' => 'App\Models\MediaItem', 'model_id' => 1,
+            'collection_name' => 'images', 'name' => 'admin-photo', 'file_name' => 'admin.jpg',
+            'mime_type' => 'image/jpeg', 'disk' => 'public', 'size' => 1024,
+            'manipulations' => '[]', 'custom_properties' => '[]',
+            'generated_conversions' => '[]', 'responsive_images' => '[]',
+            'uuid' => \Illuminate\Support\Str::uuid(), 'user_id' => $admin->id,
+        ]);
+
+        $this->actingAs($editor);
+        Livewire::test(ListMedia::class)
+            ->assertCanNotSeeTableRecords([$adminMedia]);
+    });
+
+    it('editor can see own articles in list', function () {
+        $editor = createUser(UserRole::Editor);
+        $editorArticle = Article::forceCreate([
+            'title' => 'My Article', 'slug' => 'my-article',
+            'content' => '<p>C</p>', 'is_published' => true, 'user_id' => $editor->id,
+        ]);
+
+        $this->actingAs($editor);
+        Livewire::test(ListArticles::class)
+            ->assertCanSeeTableRecords([$editorArticle]);
+    });
+
+    it('admin can see all articles regardless of owner', function () {
+        $admin = createUser(UserRole::Admin);
+        $editor = createUser(UserRole::Editor);
+        $editorArticle = Article::forceCreate([
+            'title' => 'Editor Article', 'slug' => 'editor-visible',
+            'content' => '<p>C</p>', 'is_published' => true, 'user_id' => $editor->id,
+        ]);
+
+        $this->actingAs($admin);
+        Livewire::test(ListArticles::class)
+            ->assertCanSeeTableRecords([$editorArticle]);
+    });
+
+    it('auto-assigns user_id when creating article', function () {
+        $editor = createUser(UserRole::Editor);
+        $this->actingAs($editor);
+
+        $article = Article::create([
+            'title' => 'Auto Assign', 'slug' => 'auto-assign',
+            'content' => '<p>C</p>', 'is_published' => false,
+        ]);
+
+        expect($article->fresh()->user_id)->toBe($editor->id);
+    });
+
+    it('auto-assigns user_id when creating page', function () {
+        $editor = createUser(UserRole::Editor);
+        $this->actingAs($editor);
+
+        $page = Page::create([
+            'title' => 'Auto Assign Page', 'slug' => 'auto-assign-page',
+            'is_published' => false,
+        ]);
+
+        expect($page->fresh()->user_id)->toBe($editor->id);
+    });
+
+    it('preserves content when user is deleted via nullOnDelete', function () {
+        $editor = createUser(UserRole::Editor);
+        $article = Article::forceCreate([
+            'title' => 'Orphan Article', 'slug' => 'orphan-article',
+            'content' => '<p>Keep me</p>', 'is_published' => true, 'user_id' => $editor->id,
+        ]);
+
+        $editor->delete();
+
+        $article->refresh();
+        expect($article->exists)->toBeTrue();
+        expect($article->user_id)->toBeNull();
+    });
+
+    it('editor can delete own article via Filament', function () {
+        $editor = createUser(UserRole::Editor);
+        $article = Article::forceCreate([
+            'title' => 'Delete Own', 'slug' => 'delete-own',
+            'content' => '<p>C</p>', 'is_published' => false, 'user_id' => $editor->id,
+        ]);
+
+        $this->actingAs($editor);
+        Livewire::test(EditArticle::class, ['record' => $article->getRouteKey()])
+            ->callAction('delete');
+
+        $this->assertDatabaseMissing('articles', ['id' => $article->id]);
+    });
+
+    it('editor can delete own page via Filament', function () {
+        $editor = createUser(UserRole::Editor);
+        $page = Page::forceCreate([
+            'title' => 'Delete Own Page', 'slug' => 'delete-own-page',
+            'is_published' => false, 'user_id' => $editor->id,
+        ]);
+
+        $this->actingAs($editor);
+        Livewire::test(EditPagePage::class, ['record' => $page->getRouteKey()])
+            ->callAction('delete');
+
+        $this->assertDatabaseMissing('pages', ['id' => $page->id]);
+    });
+
+    it('editor cannot access admin article edit page via direct URL', function () {
+        $admin = createUser(UserRole::Admin);
+        $editor = createUser(UserRole::Editor);
+        $article = Article::forceCreate([
+            'title' => 'Admin Direct URL', 'slug' => 'admin-direct-url',
+            'content' => '<p>C</p>', 'is_published' => true, 'user_id' => $admin->id,
+        ]);
+
+        $this->actingAs($editor);
+        $this->get('/admin/articles/' . $article->id . '/edit')
+            ->assertNotFound(); // Query scoping hides the record entirely (more secure than 403)
+    });
+
+    it('editor cannot access admin page edit page via direct URL', function () {
+        $admin = createUser(UserRole::Admin);
+        $editor = createUser(UserRole::Editor);
+        $page = Page::forceCreate([
+            'title' => 'Admin Direct URL Page', 'slug' => 'admin-direct-url-page',
+            'is_published' => true, 'user_id' => $admin->id,
+        ]);
+
+        $this->actingAs($editor);
+        $this->get('/admin/pages/' . $page->id . '/edit')
+            ->assertNotFound();
+    });
+
+    it('editor cannot forceDelete own article', function () {
+        $editor = createUser(UserRole::Editor);
+        $article = Article::forceCreate([
+            'title' => 'Force Delete Test', 'slug' => 'force-delete-test',
+            'content' => '<p>C</p>', 'is_published' => false, 'user_id' => $editor->id,
+        ]);
+
+        $this->actingAs($editor);
+        expect($editor->can('forceDelete', $article))->toBeFalse();
+    });
+
+    it('admin can forceDelete any article', function () {
+        $admin = createUser(UserRole::Admin);
+        $article = Article::forceCreate([
+            'title' => 'Admin Force Delete', 'slug' => 'admin-force-delete',
+            'content' => '<p>C</p>', 'is_published' => false, 'user_id' => $admin->id,
+        ]);
+
+        $this->actingAs($admin);
+        expect($admin->can('forceDelete', $article))->toBeTrue();
+    });
+
+    it('bulk delete skips records editor does not own', function () {
+        $admin = createUser(UserRole::Admin);
+        $editor = createUser(UserRole::Editor);
+        $adminArticle = Article::forceCreate([
+            'title' => 'Bulk Protected', 'slug' => 'bulk-protected',
+            'content' => '<p>C</p>', 'is_published' => true, 'user_id' => $admin->id,
+        ]);
+
+        $this->actingAs($editor);
+        Livewire::test(ListArticles::class)
+            ->callTableBulkAction('delete', [$adminArticle->id]);
+
+        $this->assertDatabaseHas('articles', ['id' => $adminArticle->id]);
+    });
+
+    it('bulk delete skips pages editor does not own', function () {
+        $admin = createUser(UserRole::Admin);
+        $editor = createUser(UserRole::Editor);
+        $adminPage = Page::forceCreate([
+            'title' => 'Bulk Protected Page', 'slug' => 'bulk-protected-page',
+            'is_published' => true, 'user_id' => $admin->id,
+        ]);
+
+        $this->actingAs($editor);
+        Livewire::test(ListPages::class)
+            ->callTableBulkAction('delete', [$adminPage->id]);
+
+        $this->assertDatabaseHas('pages', ['id' => $adminPage->id]);
+    });
+
+    it('bulk delete skips media editor does not own', function () {
+        $admin = createUser(UserRole::Admin);
+        $editor = createUser(UserRole::Editor);
+        $adminMedia = \App\Models\Media::forceCreate([
+            'model_type' => 'App\Models\MediaItem', 'model_id' => 1,
+            'collection_name' => 'images', 'name' => 'bulk-test', 'file_name' => 'bulk.jpg',
+            'mime_type' => 'image/jpeg', 'disk' => 'public', 'size' => 1024,
+            'manipulations' => '[]', 'custom_properties' => '[]',
+            'generated_conversions' => '[]', 'responsive_images' => '[]',
+            'uuid' => \Illuminate\Support\Str::uuid(), 'user_id' => $admin->id,
+        ]);
+
+        $this->actingAs($editor);
+        Livewire::test(ListMedia::class)
+            ->callTableBulkAction('delete', [$adminMedia->id]);
+
+        $this->assertDatabaseHas('media', ['id' => $adminMedia->id]);
     });
 });

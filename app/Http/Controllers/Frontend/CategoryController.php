@@ -7,23 +7,20 @@ use App\Models\Category;
 
 class CategoryController extends Controller
 {
+    /**
+     * @param string $slug
+     *
+     * @return \Illuminate\Contracts\View\Factory|\Illuminate\Contracts\View\View|\Illuminate\View\View
+     */
     public function show(string $slug)
     {
-        $category = Category::where('slug', $slug)
-            ->where('is_active', true)
-            ->firstOrFail();
-
-        $articles = $category->articles()
-            ->published()
-            ->latest('published_at')
-            ->paginate(12);
-
+        $category = Category::where('slug', $slug)->where('is_active', true)->firstOrFail();
+        $articles = $category->articles()->published()->latest('published_at')->paginate(12);
         $otherCategories = Category::where('is_active', true)
             ->where('id', '!=', $category->id)
             ->whereHas('articles', fn ($q) => $q->published())
             ->withCount(['articles' => fn ($q) => $q->published()])
             ->get();
-
         return view('frontend.categories.show', compact('category', 'articles', 'otherCategories'));
     }
 }

@@ -2,10 +2,12 @@
 
 namespace Database\Seeders;
 
+use App\Enums\UserRole;
 use App\Models\Article;
 use App\Models\ArticleView;
 use App\Models\Category;
 use App\Models\Page;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 
@@ -56,13 +58,16 @@ class ContentSeeder extends Seeder
         $lifestyleCategory = Category::where('slug', 'lifestyle')->first();
         $businessCategory = Category::where('slug', 'business')->first();
 
+        // Get admin user for content ownership
+        $adminUser = User::where('role', UserRole::Admin)->first();
+
         // Create Articles - 12+ articles
         $articles = [
             [
-                'title' => 'The Future of Web Development in 2025',
-                'slug' => 'future-of-web-development-2025',
-                'excerpt' => 'Testing XSS here: <img src=x onerror=alert("XSS_EXCERPT")>',
-                'content' => '<h1>Hack me</h1><script>alert("XSS_CONTENT")</script>',
+                'title' => 'The Future of Web Development in 2026',
+                'slug' => 'future-of-web-development-2026',
+                'excerpt' => 'Exploring emerging trends in web development, from AI-powered tools to new frameworks that are reshaping how we build for the web.',
+                'content' => $this->getArticleContent1(),
                 'category_id' => $techCategory->id,
                 'is_published' => true,
                 'published_at' => now()->subDays(1),
@@ -184,11 +189,14 @@ class ContentSeeder extends Seeder
                 'is_published' => true,
                 'published_at' => now()->subDays(27),
             ],
-            
         ];
 
         foreach ($articles as $articleData) {
-            Article::firstOrCreate(['slug' => $articleData['slug']], $articleData);
+            $article = Article::firstOrCreate(['slug' => $articleData['slug']], $articleData);
+            if ($adminUser && ! $article->user_id) {
+                $article->user_id = $adminUser->id;
+                $article->saveQuietly(); // Only for user_id — content is already purified by firstOrCreate
+            }
         }
 
         // Create Pages
@@ -228,7 +236,11 @@ class ContentSeeder extends Seeder
         ];
 
         foreach ($pages as $pageData) {
-            Page::firstOrCreate(['slug' => $pageData['slug']], $pageData);
+            $page = Page::firstOrCreate(['slug' => $pageData['slug']], $pageData);
+            if ($adminUser && ! $page->user_id) {
+                $page->user_id = $adminUser->id;
+                $page->saveQuietly(); // Only for user_id — content is already purified by firstOrCreate
+            }
         }
 
         // Create artificial article views for the last 30 days
@@ -299,7 +311,7 @@ class ContentSeeder extends Seeder
     private function getArticleContent1(): string
     {
         return <<<'HTML'
-<p>The web development landscape continues to evolve at a rapid pace. As we navigate through 2025, several key trends are reshaping how developers approach building web applications.</p>
+<p>The web development landscape continues to evolve at a rapid pace. As we navigate through 2026, several key trends are reshaping how developers approach building web applications.</p>
 
 <h2>AI-Powered Development Tools</h2>
 <p>Artificial intelligence has become an integral part of the development workflow. From code completion to automated testing, AI tools are helping developers write better code faster. Tools like GitHub Copilot and similar AI assistants are now standard in many development environments.</p>
@@ -917,7 +929,7 @@ HTML;
     private function getPrivacyPolicyContent(): string
     {
         return <<<'HTML'
-<p><em>Last updated: December 2025</em></p>
+<p><em>Last updated: March 2026</em></p>
 
 <p>This Privacy Policy describes how Simple CMS ("we," "us," or "our") collects, uses, and shares information when you use our website.</p>
 
@@ -972,7 +984,7 @@ HTML;
     private function getTermsContent(): string
     {
         return <<<'HTML'
-<p><em>Last updated: December 2025</em></p>
+<p><em>Last updated: March 2026</em></p>
 
 <p>Please read these Terms of Service ("Terms") carefully before using the Simple CMS website.</p>
 
