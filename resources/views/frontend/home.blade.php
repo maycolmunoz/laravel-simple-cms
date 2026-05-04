@@ -4,13 +4,13 @@
         <div class="container mx-auto px-6 py-20 md:py-28">
             <div class="grid lg:grid-cols-12 gap-12 items-center">
                 <div class="lg:col-span-5">
-                    <span class="inline-block px-4 py-1.5 text-xs font-semibold uppercase tracking-wider border border-base-300 rounded-full mb-6 text-base-content/60">
-                        {{ __('frontend.site_name') }}
-                    </span>
-                    <h1 class="font-display text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] mb-6">
+                    <div class="flex items-center gap-3 mb-6">
+                        <span class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">{{ now()->format('M d, Y') }}</span>
+                    </div>
+                    <h1 class="font-display text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.05] tracking-tight mb-6">
                         {{ __('frontend.site_tagline') }}
                     </h1>
-                    <p class="text-lg text-base-content/60 mb-8 leading-relaxed">
+                    <p class="text-lg text-base-content/60 mb-8 leading-relaxed max-w-md">
                         {{ __('frontend.site_description') }}
                     </p>
                     <div class="flex flex-wrap gap-3">
@@ -67,12 +67,85 @@
                                 @endforeach
                             </div>
                         </div>
+                    @elseif($heroArticles->count() === 2)
+                        <div class="grid grid-cols-12 gap-4">
+                            @foreach($heroArticles as $article)
+                                <a href="{{ route('articles.show', $article->slug) }}" class="col-span-12 md:col-span-6 group">
+                                    <div class="relative aspect-[4/3] rounded-lg overflow-hidden border border-base-300 bg-base-200">
+                                        @if($article->featured_image)
+                                            <img src="{{ Storage::url($article->featured_image) }}" alt="{{ $article->title }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        @else
+                                            <div class="w-full h-full flex items-center justify-center">
+                                                <span class="font-display text-6xl text-base-content/10">{{ substr($article->title, 0, 1) }}</span>
+                                            </div>
+                                        @endif
+                                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                                        <div class="absolute bottom-0 left-0 right-0 p-5 text-white">
+                                            @if($article->category)
+                                                <span class="badge badge-sm bg-white/20 border-0 text-white mb-2">{{ $article->category->title }}</span>
+                                            @endif
+                                            <h3 class="font-display font-semibold text-base leading-snug">{{ $article->title }}</h3>
+                                        </div>
+                                    </div>
+                                </a>
+                            @endforeach
+                        </div>
+                    @elseif($heroArticles->count() === 1)
+                        <a href="{{ route('articles.show', $heroArticles[0]->slug) }}" class="block group">
+                            <div class="relative aspect-[16/10] rounded-lg overflow-hidden border border-base-300 bg-base-200">
+                                @if($heroArticles[0]->featured_image)
+                                    <img src="{{ Storage::url($heroArticles[0]->featured_image) }}" alt="{{ $heroArticles[0]->title }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                @else
+                                    <div class="w-full h-full flex items-center justify-center">
+                                        <span class="font-display text-8xl text-base-content/10">{{ substr($heroArticles[0]->title, 0, 1) }}</span>
+                                    </div>
+                                @endif
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                                <div class="absolute bottom-0 left-0 right-0 p-6 text-white">
+                                    @if($heroArticles[0]->category)
+                                        <span class="badge badge-sm bg-white/20 border-0 text-white mb-3">{{ $heroArticles[0]->category->title }}</span>
+                                    @endif
+                                    <h3 class="font-display font-semibold text-2xl leading-snug max-w-xl">{{ $heroArticles[0]->title }}</h3>
+                                </div>
+                            </div>
+                        </a>
+                    @else
+                        <!-- Editorial poster fallback when no articles yet -->
+                        <div class="relative aspect-[4/3] rounded-lg overflow-hidden border border-base-300 bg-base-200">
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <span class="font-display font-bold text-[18rem] text-primary/10 leading-none select-none">{{ substr(__('frontend.site_name'), 0, 1) }}</span>
+                            </div>
+                            <div class="absolute top-6 left-6 right-6 flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-base-content/50">
+                                <span>Forthcoming</span>
+                                <span class="h-px flex-1 bg-base-300"></span>
+                                <span>{{ now()->format('Y') }}</span>
+                            </div>
+                            <div class="absolute bottom-6 left-6 right-6">
+                                <p class="font-display text-xl text-base-content/70 leading-snug max-w-md">First stories arriving shortly. Check back for the inaugural collection.</p>
+                            </div>
+                        </div>
                     @endif
                 </div>
             </div>
         </div>
     </section>
-    @if($articles->count())
+    @php
+        $heroIds = isset($heroArticles) ? $heroArticles->pluck('id') : collect();
+        $latestArticles = $articles->whereNotIn('id', $heroIds)->take(6);
+    @endphp
+    @if($articles->isEmpty())
+        <!-- Empty State -->
+        <section class="container mx-auto px-6 py-24 text-center">
+            <div class="max-w-md mx-auto">
+                <div class="w-20 h-20 rounded-full border border-base-300 flex items-center justify-center mx-auto mb-6">
+                    <x-lucide-newspaper class="w-10 h-10 text-base-content/30" />
+                </div>
+                <h2 class="font-display text-2xl font-semibold mb-3">{{ __('frontend.empty.no_content') }}</h2>
+                <p class="text-base-content/60">{{ __('frontend.empty.check_back') }}</p>
+            </div>
+        </section>
+    @endif
+    @if($latestArticles->count())
         <!-- Latest Articles -->
         <section id="latest">
             <div class="container mx-auto px-6 py-12">
@@ -85,7 +158,7 @@
                 </div>
 
                 <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    @foreach($articles->skip(3)->take(6) as $article)
+                    @foreach($latestArticles as $article)
                         <a href="{{ route('articles.show', $article->slug) }}" class="group block border border-base-300 rounded-lg overflow-hidden hover:border-primary transition-colors">
                             <figure class="aspect-video bg-base-200">
                                 @if($article->featured_image)
@@ -113,31 +186,20 @@
                 </div>
             </div>
         </section>
+    @endif
+    @if($categories->count())
         <!-- Categories -->
-        @if($categories->count())
-            <section>
-                <div class="container mx-auto px-6 py-12">
-                    <h2 class="font-display text-2xl font-semibold mb-10">{{ __('frontend.articles.browse_by_topic') }}</h2>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        @foreach($categories as $category)
-                            <a href="{{ route('categories.show', $category->slug) }}" class="block p-6 border border-base-300 rounded-lg hover:border-primary transition-colors">
-                                <h3 class="font-display font-semibold">{{ $category->title }}</h3>
-                                <p class="text-sm text-base-content/50 mt-1">{{ $category->articles_count }} {{ Str::plural('article', $category->articles_count) }}</p>
-                            </a>
-                        @endforeach
-                    </div>
+        <section>
+            <div class="container mx-auto px-6 py-12">
+                <h2 class="font-display text-2xl font-semibold mb-10">{{ __('frontend.articles.browse_by_topic') }}</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    @foreach($categories as $category)
+                        <a href="{{ route('categories.show', $category->slug) }}" class="block p-6 border border-base-300 rounded-lg hover:border-primary transition-colors">
+                            <h3 class="font-display font-semibold">{{ $category->title }}</h3>
+                            <p class="text-sm text-base-content/50 mt-1">{{ $category->articles_count }} {{ Str::plural('article', $category->articles_count) }}</p>
+                        </a>
+                    @endforeach
                 </div>
-            </section>
-        @endif
-    @else
-        <!-- Empty State -->
-        <section class="container mx-auto px-6 py-24 text-center">
-            <div class="max-w-md mx-auto">
-                <div class="w-20 h-20 rounded-full border border-base-300 flex items-center justify-center mx-auto mb-6">
-                    <x-lucide-newspaper class="w-10 h-10 text-base-content/30" />
-                </div>
-                <h2 class="font-display text-2xl font-semibold mb-3">{{ __('frontend.empty.no_content') }}</h2>
-                <p class="text-base-content/60">{{ __('frontend.empty.check_back') }}</p>
             </div>
         </section>
     @endif

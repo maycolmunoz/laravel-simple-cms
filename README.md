@@ -624,6 +624,11 @@ The frontend uses [Blade Lucide Icons](https://github.com/mallardduck/blade-luci
 
 Browse available icons at [lucide.dev](https://lucide.dev/icons/).
 
+### Favicon
+
+The default favicon is `public/favicon.png` (192×192), wired up in `resources/views/components/layouts/app.blade.php`. 
+For a full icon set (multiple PNG sizes, web manifest), generate one at <https://ozdemir.dev/favicon-generator/>.
+
 ### Internationalization
 
 All frontend text uses Laravel's localization system. Strings are stored in `lang/en/frontend.php`.
