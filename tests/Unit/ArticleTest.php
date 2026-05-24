@@ -113,7 +113,7 @@ describe('views', function () {
     });
 
     it('casts viewed_at to datetime', function () {
-        $view = ArticleView::create(['article_id' => $this->article->id, 'viewed_at' => '2025-01-15 10:30:00']);
+        $view = $this->article->views()->create(['viewed_at' => '2025-01-15 10:30:00']);
 
         expect($view->viewed_at)->toBeInstanceOf(\Illuminate\Support\Carbon::class);
     });

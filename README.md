@@ -56,6 +56,8 @@ composer install
 npm install
 ```
 
+> **Note:** This project ships an `.npmrc` with `ignore-scripts=true` to mitigate [npm supply chain attacks](https://cheatsheetseries.owasp.org/cheatsheets/NPM_Security_Cheat_Sheet.html#3-minimize-attack-surfaces-by-ignoring-run-scripts).
+
 ### 4. Environment setup
 
 ```bash

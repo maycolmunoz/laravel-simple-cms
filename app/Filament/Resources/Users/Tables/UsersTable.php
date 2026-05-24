@@ -44,7 +44,8 @@ class UsersTable
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
                         ->deselectRecordsAfterCompletion()
-                        ->action(fn ($records) => $records->reject(fn ($r) => $r->is(auth()->user()))->each->delete()),
+                        ->action(fn ($records) => $records->reject(fn ($r) => $r->is(auth()->user()))->each->delete())
+                        ->authorizeIndividualRecords('delete'),
                 ]),
             ]);
     }

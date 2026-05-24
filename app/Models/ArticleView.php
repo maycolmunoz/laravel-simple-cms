@@ -15,7 +15,12 @@ class ArticleView extends Model
     /**
      * @var string[]
      */
-    protected $guarded = [];
+    protected $fillable = [
+        'ip_address',
+        'user_agent',
+        'referer',
+        'viewed_at',
+    ];
 
     /**
      * @return string[]

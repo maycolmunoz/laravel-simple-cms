@@ -60,7 +60,7 @@ class ListMedia extends ListRecords
                             continue;
                         }
                         $mediaItem->addMedia($realPath)
-                            ->usingFileName($file->getClientOriginalName())
+                            ->usingFileName(\Illuminate\Support\Str::uuid().'.'.$file->guessExtension())
                             ->toMediaCollection('images');
                         $uploaded++;
                     }
