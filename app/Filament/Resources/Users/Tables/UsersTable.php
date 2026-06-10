@@ -44,6 +44,8 @@ class UsersTable
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
                         ->deselectRecordsAfterCompletion()
+                        // The reject() is defense-in-depth: UserPolicy::delete also denies
+                        // self-deletion. Keep both — don't remove one assuming the other suffices.
                         ->action(fn ($records) => $records->reject(fn ($r) => $r->is(auth()->user()))->each->delete())
                         ->authorizeIndividualRecords('delete'),
                 ]),

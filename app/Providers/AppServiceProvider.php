@@ -6,7 +6,9 @@ use App\Models\Article;
 use App\Models\Media;
 use App\Models\MediaItem;
 use App\Models\Page;
+use App\Models\User;
 use App\Policies\OwnerablePolicy;
+use App\Policies\UserPolicy;
 use App\View\Composers\NavigationComposer;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\View;
@@ -33,5 +35,6 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Page::class, OwnerablePolicy::class);
         Gate::policy(Media::class, OwnerablePolicy::class);
         Gate::policy(MediaItem::class, OwnerablePolicy::class);
+        Gate::policy(User::class, UserPolicy::class);
     }
 }

@@ -7,6 +7,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Validation\Rules\Password;
 
 class UserForm
 {
@@ -30,7 +31,7 @@ class UserForm
                             ->revealable()
                             ->dehydrated(fn ($state) => filled($state))
                             ->required(fn (string $operation): bool => $operation === 'create')
-                            ->minLength(8)
+                            ->rule(Password::min(8)->mixedCase()->numbers()->uncompromised())
                             ->confirmed()
                             ->maxLength(255),
                         TextInput::make('password_confirmation')

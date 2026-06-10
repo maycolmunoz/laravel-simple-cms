@@ -243,8 +243,8 @@ describe('Users', function () {
             ->fillForm([
                 'name' => 'New Editor',
                 'email' => 'editor@test.com',
-                'password' => 'securepassword',
-                'password_confirmation' => 'securepassword',
+                'password' => 'Qz7vBn3wKt5pLs',
+                'password_confirmation' => 'Qz7vBn3wKt5pLs',
                 'role' => 'editor',
             ])
             ->call('create')
@@ -260,8 +260,8 @@ describe('Users', function () {
             ->fillForm([
                 'name' => 'New Admin',
                 'email' => 'newadmin@test.com',
-                'password' => 'securepassword',
-                'password_confirmation' => 'securepassword',
+                'password' => 'Qz7vBn3wKt5pLs',
+                'password_confirmation' => 'Qz7vBn3wKt5pLs',
                 'role' => 'admin',
             ])
             ->call('create')
@@ -294,6 +294,25 @@ describe('Users', function () {
     it('appears in the list', function () {
         Livewire::test(ListUsers::class)
             ->assertCanSeeTableRecords([$this->admin]);
+    });
+
+    it('can bulk delete users', function () {
+        $editor = createUser(UserRole::Editor, ['email' => 'bulk-deleteme@test.com']);
+
+        Livewire::test(ListUsers::class)
+            ->callTableBulkAction('delete', [$editor->id]);
+
+        $this->assertDatabaseMissing('users', ['id' => $editor->id]);
+    });
+
+    it('bulk delete never deletes the acting admin', function () {
+        $editor = createUser(UserRole::Editor, ['email' => 'bulk-other@test.com']);
+
+        Livewire::test(ListUsers::class)
+            ->callTableBulkAction('delete', [$this->admin->id, $editor->id]);
+
+        $this->assertDatabaseHas('users', ['id' => $this->admin->id]);
+        $this->assertDatabaseMissing('users', ['id' => $editor->id]);
     });
 
     it('requires name, email, and password', function () {
@@ -330,21 +349,58 @@ describe('Users', function () {
     });
 
     it('requires minimum password length', function () {
+        // Mixed case + number so only the length rule is violated.
         Livewire::test(CreateUser::class)
             ->fillForm([
                 'name' => 'Test',
                 'email' => 'short@test.com',
-                'password' => 'short',
-                'password_confirmation' => 'short',
+                'password' => 'Ab1',
+                'password_confirmation' => 'Ab1',
                 'role' => 'editor',
             ])
             ->call('create')
-            ->assertHasFormErrors(['password' => 'min']);
+            ->assertHasFormErrors(['password']);
+    });
+
+    it('rejects passwords without mixed case and numbers', function () {
+        Livewire::test(CreateUser::class)
+            ->fillForm([
+                'name' => 'Test',
+                'email' => 'weak@test.com',
+                'password' => 'alllowercase',
+                'password_confirmation' => 'alllowercase',
+                'role' => 'editor',
+            ])
+            ->call('create')
+            ->assertHasFormErrors(['password']);
+
+        expect(User::where('email', 'weak@test.com')->exists())->toBeFalse();
     });
 
     it('cannot delete self', function () {
         Livewire::test(EditUser::class, ['record' => $this->admin->getRouteKey()])
             ->assertActionHidden('delete');
+    });
+
+    it('cannot demote the last remaining admin', function () {
+        // $this->admin is the only admin in the system.
+        Livewire::test(EditUser::class, ['record' => $this->admin->getRouteKey()])
+            ->fillForm(['role' => UserRole::Editor->value])
+            ->call('save')
+            ->assertHasFormErrors(['role']);
+
+        expect($this->admin->fresh()->role)->toBe(UserRole::Admin);
+    });
+
+    it('allows demoting an admin when another admin exists', function () {
+        $other = createUser(UserRole::Admin, ['email' => 'second-admin@test.com']);
+
+        Livewire::test(EditUser::class, ['record' => $other->getRouteKey()])
+            ->fillForm(['role' => UserRole::Editor->value])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        expect($other->fresh()->role)->toBe(UserRole::Editor);
     });
 });
 

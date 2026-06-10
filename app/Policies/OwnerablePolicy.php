@@ -8,20 +8,26 @@ use Illuminate\Database\Eloquent\Model;
 class OwnerablePolicy
 {
     /**
-     * `viewAny` and `view` intentionally return true for any authenticated user. Per-user
+     * `viewAny` intentionally returns true for any authenticated user. Per-user list
      * visibility is enforced at the query layer via the `visibleTo()` scope on the model
      * (see `App\Models\Concerns\BelongsToOwner`) and `getEloquentQuery()` overrides on
      * each Filament resource. Returning `false` here would block Filament from even
-     * rendering the edit page chrome, breaking the UI.
+     * rendering the index/edit page chrome, breaking the UI.
      */
     public function viewAny(User $user): bool
     {
         return true;
     }
 
+    /**
+     * `view` is record-specific, so it mirrors update/delete: admins and the record's
+     * owner (or any editor for orphaned records) may view it. This provides defense in
+     * depth if a record View page is ever registered — query scoping alone would 404
+     * out-of-scope records, but the policy now also denies them.
+     */
     public function view(User $user, Model $record): bool
     {
-        return true;
+        return $user->isAdmin() || $this->ownsOrIsOrphan($user, $record);
     }
 
     /**

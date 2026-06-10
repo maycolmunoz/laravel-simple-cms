@@ -62,21 +62,33 @@ class Page extends Model
             if ($page->isDirty('content') && $page->content) {
                 $page->content = Purify::clean($page->content);
             }
+
+            // title and excerpt are rendered as plain text on the frontend; strip any HTML
+            // so they can never become an XSS vector if later output in a raw/JS context.
+            if ($page->isDirty('title') && $page->title) {
+                $page->title = strip_tags($page->title);
+            }
+            if ($page->isDirty('excerpt') && $page->excerpt) {
+                $page->excerpt = strip_tags($page->excerpt);
+            }
         });
 
         static::saved(function (Page $page) {
             cache()->forget('nav_pages');
-            if ($page->user_id) {
-                cache()->forget('dashboard_stats:'.$page->user_id);
-            }
+            static::forgetDashboardStats($page);
         });
 
         static::deleted(function (Page $page) {
             cache()->forget('nav_pages');
-            if ($page->user_id) {
-                cache()->forget('dashboard_stats:'.$page->user_id);
-            }
+            static::forgetDashboardStats($page);
         });
+    }
+
+    protected static function forgetDashboardStats(Page $page): void
+    {
+        if ($page->user_id) {
+            cache()->forget('dashboard_stats:'.$page->user_id);
+        }
     }
 
     /**

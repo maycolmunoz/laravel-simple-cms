@@ -63,6 +63,15 @@ class Article extends Model
             if ($article->isDirty('content') && $article->content) {
                 $article->content = Purify::clean($article->content);
             }
+
+            // title and excerpt are rendered as plain text on the frontend; strip any HTML
+            // so they can never become an XSS vector if later output in a raw/JS context.
+            if ($article->isDirty('title') && $article->title) {
+                $article->title = strip_tags($article->title);
+            }
+            if ($article->isDirty('excerpt') && $article->excerpt) {
+                $article->excerpt = strip_tags($article->excerpt);
+            }
         });
 
         static::saved(fn (Article $article) => static::forgetDashboardStats($article));

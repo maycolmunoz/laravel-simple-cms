@@ -12,6 +12,7 @@ use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Str;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class ArticleForm
 {
@@ -27,7 +28,13 @@ class ArticleForm
                             ->disk('public')
                             ->directory('articles')
                             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
-                            ->maxSize(5120),
+                            ->maxSize(5120)
+                            // Derive the stored extension from the server-detected MIME type rather than
+                            // trusting the client-supplied filename. Prevents a polyglot/double-extension
+                            // upload (e.g. shell.php) from landing as an executable file under public/storage.
+                            ->getUploadedFileNameForStorageUsing(
+                                fn (TemporaryUploadedFile $file): string => Str::ulid().'.'.($file->guessExtension() ?? 'bin')
+                            ),
                         TextInput::make('title')
                             ->required()
                             ->maxLength(255)
